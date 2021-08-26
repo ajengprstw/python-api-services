@@ -1,28 +1,68 @@
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
+from .models import *
+from .forms import OrderForm
 
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from .serializers import customersSerializer
-from .models import customers
+#create your views here
 
 def index(request):
-    return HttpResponse("Hello, Welcome.")
+    Orders = order.objects.all()
+    Customers = customer.objects.all()
+    total_customers = Customers.count()
 
-class TestView(APIView):
-    def get(self, request, *args, **kwargs):
-        data = {
-            'name' : 'ajeng',
-            'address': "pasar minggu",
-            'phone':  "08121345678",
-            "email": "ajeng@algorit.ma"
-        }
-        return Response(data)
+    context = {'orders': Orders,
+               'customers': Customers,
+               'total_customers': total_customers}
+    
 
-    def post(self, request, *args, **kwargs):
-        serializer = customersSerializer(data=request.data)
-        serializer.is_valid()
-        serializer.save()
-        return Response(serializer.data)
+    return(render(request, 'customer/dashboard.html', context))
+
+def Product(request):
+	Product = product.objects.all()
+
+	return render(request, 'customer/products.html', {'product':Product})
+
+def Customer(request, pk_test):
+	Customer = customer.objects.get(id=pk_test)
+
+	Orders = Customer.order_set.all()
+	Order_count = Orders.count()
+
+	context = {'customer':Customer, 'orders':Orders, 'order_count':Order_count}
+	return render(request, 'customer/customer.html',context)
+
+def createOrder(request):
+	form = OrderForm()
+	if request.method == 'POST':
+		#print('Printing POST:', request.POST)
+		form = OrderForm(request.POST)
+		if form.is_valid():
+			form.save()
+			return redirect('/')
+
+	context = {'form':form}
+	return render(request, 'customer/order_form.html', context)
+
+def updateOrder(request, pk):
+
+	Order = order.objects.get(id=pk)
+	form = OrderForm(instance=Order)
+
+	if request.method == 'POST':
+		form = OrderForm(request.POST, instance=Order)
+		if form.is_valid():
+			form.save()
+			return redirect('/')
+
+	context = {'form':form}
+	return render(request, 'customer/order_form.html', context)
+
+def deleteOrder(request, pk):
+	Order = order.objects.get(id=pk)
+	if request.method == "POST":
+		Order.delete()
+		return redirect('/')
+
+	context = {'item':Order}
+	return render(request, 'customerdelete.html', context)
